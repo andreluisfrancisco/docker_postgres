@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:18.7
+    container_name: postgres-db
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: app
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      MIGRATION_PASSWORD: ${MIGRATION_PASSWORD:?defina MIGRATION_PASSWORD no .env}
+      DEVELOPER_PASSWORD: ${DEVELOPER_PASSWORD:?defina DEVELOPER_PASSWORD no .env}
+    command:
+      - postgres
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - log_connections=on
+      - -c
+      - log_disconnections=on
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d:ro
+    shm_size: 256mb
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  postgres_data:
